@@ -11,7 +11,7 @@ makedepends=('cargo' 'git')
 provides=('live-paper')
 conflicts=('live-paper')
 replaces=('live-paper')
-_commit=a2fb2a94a6a5e09f96779d77fb0c840288c61c16
+_commit=baf1acdf65effe4d0901bac5b0eb9111b0485dbf
 source=("$pkgname-$pkgver.tar.gz::$url/archive/$_commit.tar.gz")
 sha256sums=('SKIP')
 
