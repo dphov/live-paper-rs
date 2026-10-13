@@ -1,6 +1,6 @@
 # Maintainer: Dmitry Petukhov <mail@dphov.com>
 pkgname=live-paper-fork
-pkgver=0.4.1.r2
+pkgver=0.4.1.r3
 pkgrel=1
 pkgdesc="A Wayland video wallpaper engine (fork with EGL teardown fix)"
 arch=('x86_64')
@@ -11,7 +11,7 @@ makedepends=('cargo' 'git')
 provides=('live-paper')
 conflicts=('live-paper')
 replaces=('live-paper')
-_commit=b897d3893febcc7806ae45cbe6f6498dd39dc68f
+_commit=a2fb2a94a6a5e09f96779d77fb0c840288c61c16
 source=("$pkgname-$pkgver.tar.gz::$url/archive/$_commit.tar.gz")
 sha256sums=('SKIP')
 
