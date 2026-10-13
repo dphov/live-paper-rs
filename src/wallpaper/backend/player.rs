@@ -120,8 +120,11 @@ impl MpvInstance {
 #[derive(Clone, Copy)]
 enum PlayerState {
     Playing,
+    Preloading { start_ms: u32 },
     Crossfading { start_ms: u32, duration_ms: u32 },
 }
+
+const PRELOAD_DELAY_MS: u32 = 400;
 
 /// Wraps two mpv instances and crossfades between them on video switches.
 pub struct Player {
@@ -173,23 +176,34 @@ impl Player {
         }
         let transition = self.transition.as_ref().unwrap();
 
-        // Handle a pending switch by starting the crossfade now.
+        // Handle a pending switch by loading the next video and preloading it
+        // for a few frames so mpv can decode a real frame before we fade to it.
         if let Some(path) = self.pending_path.take() {
             if let Err(e) = self.next.loadfile(&path) {
                 error!("Failed to load next video for crossfade: {e}");
                 return;
             }
             transition.clear_next(gl);
-            self.state = PlayerState::Crossfading {
-                start_ms: time,
-                duration_ms: self.config.crossfade_duration_ms,
-            };
+            self.state = PlayerState::Preloading { start_ms: time };
         }
 
         match self.state {
             PlayerState::Playing => {
                 self.current.render(transition.current_fbo(), width, height);
                 transition.render_blend(gl, 0.0, width, height);
+            }
+            PlayerState::Preloading { start_ms } => {
+                // Keep drawing current while next decodes in the background.
+                self.current.render(transition.current_fbo(), width, height);
+                self.next.render(transition.next_fbo(), width, height);
+                transition.render_blend(gl, 0.0, width, height);
+
+                if time.saturating_sub(start_ms) >= PRELOAD_DELAY_MS {
+                    self.state = PlayerState::Crossfading {
+                        start_ms: time,
+                        duration_ms: self.config.crossfade_duration_ms,
+                    };
+                }
             }
             PlayerState::Crossfading { start_ms, duration_ms } => {
                 let alpha = ((time.saturating_sub(start_ms)) as f32 / duration_ms as f32)
