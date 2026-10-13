@@ -72,6 +72,8 @@ pub struct PlayerConfig {
     /// `true` crops the video to fill the screen
     /// `false` shows the whole video and letterboxes it
     pub fill: bool,
+    /// Crossfade duration in milliseconds when switching videos
+    pub crossfade_duration_ms: u32,
     /// Raw passthrough to `mpv.set_property`, applied after the typed fields!
     /// Full option list: https://mpv.io/manual/master/#options
     pub mpv_options: HashMap<String, String>,
@@ -85,6 +87,7 @@ impl Default for PlayerConfig {
             mute: true,
             hwdec: "auto".to_string(),
             fill: true,
+            crossfade_duration_ms: 1000,
             mpv_options: HashMap::new(),
         }
     }

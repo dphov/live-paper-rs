@@ -4,6 +4,7 @@ use log::{debug, warn};
 
 pub mod pattern;
 pub mod player;
+pub mod transition;
 
 use pattern::Renderer;
 use player::Player;
