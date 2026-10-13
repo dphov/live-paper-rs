@@ -179,6 +179,7 @@ impl Player {
                 error!("Failed to load next video for crossfade: {e}");
                 return;
             }
+            transition.clear_next(gl);
             self.state = PlayerState::Crossfading {
                 start_ms: time,
                 duration_ms: self.config.crossfade_duration_ms,

@@ -102,6 +102,11 @@ fn create_fbo(gl: &glow::Context, width: i32, height: i32) -> (glow::Framebuffer
             "framebuffer incomplete"
         );
 
+        // Clear to black so uninitialized textures never flash garbage colors.
+        gl.viewport(0, 0, width, height);
+        gl.clear_color(0.0, 0.0, 0.0, 1.0);
+        gl.clear(glow::COLOR_BUFFER_BIT);
+
         gl.bind_texture(glow::TEXTURE_2D, None);
         gl.bind_framebuffer(glow::FRAMEBUFFER, None);
 
@@ -186,6 +191,18 @@ impl Transition {
 
     pub fn next_fbo(&self) -> i32 {
         self.next_fbo.0.get() as i32
+    }
+
+    /// Clear the next FBO to black before a new transition, so the previous
+    /// transition's contents or uninitialized memory never flashes through.
+    pub fn clear_next(&self, gl: &glow::Context) {
+        unsafe {
+            gl.bind_framebuffer(glow::FRAMEBUFFER, Some(self.next_fbo));
+            gl.viewport(0, 0, self.width, self.height);
+            gl.clear_color(0.0, 0.0, 0.0, 1.0);
+            gl.clear(glow::COLOR_BUFFER_BIT);
+            gl.bind_framebuffer(glow::FRAMEBUFFER, None);
+        }
     }
 
     /// Render the two off-screen textures to the default framebuffer with the
