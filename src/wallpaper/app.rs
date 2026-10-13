@@ -495,6 +495,17 @@ impl App {
     }
 }
 
+impl Drop for App {
+    fn drop(&mut self) {
+        // `layer` is declared before `egl_window`, so without this explicit
+        // teardown Rust would drop the Wayland surface first and then call
+        // `wl_egl_window_destroy` on a window whose surface proxy is already
+        // freed. That produces a SEGV inside libwayland-client (via the NVIDIA
+        // EGL Wayland driver) when the renderer process exits.
+        self.egl_window = None;
+    }
+}
+
 impl CompositorHandler for App {
     fn frame(
         &mut self,
