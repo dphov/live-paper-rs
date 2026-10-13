@@ -69,19 +69,32 @@ impl ToplevelState {
     }
 }
 
-// TODO: maybe I should group these...
+// Rust drops struct fields in declaration order, so resources must be listed
+// in reverse-dependency order. The backend uses GL, GL needs the EGL window,
+// the EGL window needs the Wayland surface, and everything Wayland needs the
+// connection alive to send destroy requests.
 pub struct App {
-    conn: Connection,
-    registry_state: RegistryState,
-    output_state: OutputState,
-    layer: LayerSurface,
-
-    viewport: WpViewport, // Not sure
-    output: Option<wl_output::WlOutput>,
-    egl: Egl,
-    egl_window: Option<EglWindow>,
+    // GL / render resources (most-dependent first)
     /// The active frame source, chosen from config
     backend: Backend,
+    egl_window: Option<EglWindow>,
+    egl: Egl,
+
+    // Per-surface / per-output Wayland proxies
+    viewport: WpViewport,
+    power: Option<ZwlrOutputPowerV1>,
+    output: Option<wl_output::WlOutput>,
+    layer: LayerSurface,
+
+    // Globals and registry state
+    power_manager: Option<ZwlrOutputPowerManagerV1>,
+    toplevel_manager: Option<ZwlrForeignToplevelManagerV1>,
+    toplevels: HashMap<ObjectId, ToplevelState>,
+    output_state: OutputState,
+    registry_state: RegistryState,
+    conn: Connection,
+
+    // Plain state (no teardown ordering constraints)
     /// Logical width
     width: u32,
     /// Logical height
@@ -98,14 +111,6 @@ pub struct App {
     screen_off: bool,
     /// True while GameMode has at least one registered game
     gamemode_active: bool,
-    /// Global for creating per-output power objects, if the compositor supports it
-    power_manager: Option<ZwlrOutputPowerManagerV1>,
-    /// DPMS power object for the current output
-    power: Option<ZwlrOutputPowerV1>,
-    /// Global for toplevel windows, if compositor has support
-    toplevel_manager: Option<ZwlrForeignToplevelManagerV1>,
-    /// State of every currently open toplevel panels
-    toplevels: HashMap<ObjectId, ToplevelState>,
     /// Pause when a toplevel is fullscreen
     pause_on_fullscreen: bool,
     /// Pause when a toplevel is maximized (not fullscreen)
@@ -492,17 +497,6 @@ impl App {
         }
         self.ready_reported = true;
         true
-    }
-}
-
-impl Drop for App {
-    fn drop(&mut self) {
-        // `layer` is declared before `egl_window`, so without this explicit
-        // teardown Rust would drop the Wayland surface first and then call
-        // `wl_egl_window_destroy` on a window whose surface proxy is already
-        // freed. That produces a SEGV inside libwayland-client (via the NVIDIA
-        // EGL Wayland driver) when the renderer process exits.
-        self.egl_window = None;
     }
 }
 
